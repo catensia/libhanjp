@@ -297,10 +297,59 @@ hanjp_ambase_push(HanjpAutomata *am, GArray *result, GArray *hangul, gunichar ch
     HanjpAutomataBasePrivate *priv;
     priv = hanjp_ambase_get_instance_private(HANJP_AUTOMATABASE(am));
 
-    // to implement
+    gunichar c;
+    gint signal;
 
-    return TRUE;
+    if(hangul_is_choseong(ch)){
+        if(priv->buffer.cho){
+            if(!hanjp_ambase_to_kana(am, result, priv->buffer.cho, priv->buffer.jung, priv->buffer.jung2, priv->buffer.jong)){
+                return HANJP_AM_FAIL;
+            }
+            c=hanjp_ambase_flush(am);
+            g_array_append_val(hangul, c);
+            //hangul.push_back(buffer.flush(combine_map));
+            signal=HANJP_AM_POP;
+        }
+        else{
+            signal=HANJP_AM_EAT;
+        }
+        priv->buffer.cho = ch;
+    }
+    else if(hangul_is_jungseong(ch)){
+        if(priv->buffer.jung){
+            priv->buffer.jung2=ch;
+        }
+        else{
+            priv->buffer.jung=ch;
+        }
+        if(priv->buffer.jung2==0 && priv->buffer.jung==HANJP_JUNGSEONG_O){
+            signal=HANJP_AM_EAT;
+        }
+        else{
+            if(!hanjp_ambase_to_kana(am, result, priv->buffer.cho, priv->buffer.jung, priv->buffer.jung2, priv->buffer.jong)){
+                return HANJP_AM_FAIL;
+            }
+            //g_array_append_val(hangul, hanjp_ambase_flush(am));
+            //hangul.push_back(buffer.flush(combine_map));
+            signal=HANJP_AM_POP;
+        }
+    }
+    else if(hangul_is_jongseong(ch)){
+        signal=hanjp_ambase_push(am, result, hangul, hangul_jongseong_to_choseong(ch));
+    }
+    
+    else{
+        hanjp_ambase_to_kana(am, result, priv->buffer.cho, priv->buffer.jung, priv->buffer.jung2, priv->buffer.jong);
+        g_array_append_val(result, ch);
+        //g_array_append_val(hangul, hanjp_ambase_flush(am));
+        //hangul.push_back(buffer.flush(combine_map));
+        g_array_append_val(hangul, ch);
+        signal=HANJP_AM_FAIL;
+    }
+
+    return signal;
 }
+
 
 static gboolean
 hanjp_ambase_backspace(HanjpAutomata *am)
