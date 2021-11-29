@@ -68,10 +68,10 @@ hanjp_ic_init(HanjpInputContext *self)
     HanjpInputContextPrivate *priv;
     priv = hanjp_ic_get_instance_private(self);
 
-    priv->ams[0] = HANJP_AUTOMATA(hanjp_amdefault_new());
+    priv->ams[0] = HANJP_AM(hanjp_am_builtin_new());
     priv->ams[1] = NULL;
     priv->cur_am = g_object_ref(priv->ams[0]);
-    priv->keyboard = HANJP_KEYBOARD(hanjp_keyboarddefault_new());
+    priv->keyboard = HANJP_KB(hanjp_kb_builtin_new());
     priv->preedit = g_array_sized_new(TRUE, TRUE, sizeof(gunichar), 64);
     priv->committed = g_array_sized_new(TRUE, TRUE, sizeof(gunichar), 64);
     priv->hangul = g_array_sized_new(TRUE, TRUE, sizeof(gunichar), 64);
@@ -126,12 +126,14 @@ gint hanjp_ic_process(HanjpInputContext *self, gint ascii)
     priv = hanjp_ic_get_instance_private(self);
 
     //map jaso from ascii
-    ch = hanjp_keyboard_get_mapping(priv->keyboard, 0, ascii);
+    ch = hanjp_kb_get_mapping(priv->keyboard, 0, ascii);
     if(ch == 0) {
         ch = (gunichar)ascii;
     }
     //shrink preedit before push
     g_array_set_size(priv->preedit, priv->kana_len);
+    g_array_set_size(priv->committed, 0);
+    g_array_set_size(priv->hangul, 0);
     //push jaso into automata
     res = hanjp_am_push(priv->cur_am, priv->preedit, priv->hangul, ch);
 
